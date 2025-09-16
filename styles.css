@@ -39,6 +39,8 @@ body {
   background: linear-gradient(180deg, rgba(18,26,52,.95), rgba(18,26,52,.7));
   border-bottom: 1px solid rgba(255,255,255,.08);
   backdrop-filter: blur(6px);
+  position: relative; /* stacking context */
+  z-index: 5; /* ensure above fixed video on Safari */
 }
 .hud-left, .hud-right { display: flex; align-items: center; gap: 10px; }
 .hud-center { text-align: center; }
@@ -61,7 +63,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: 0;
+  z-index: -1; /* keep safely behind UI layers (Safari fix) */
   pointer-events: none;
   filter: brightness(0.6) saturate(1.1);
 }
