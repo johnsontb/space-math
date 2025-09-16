@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Space Math Adventure</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="retro">
+    <div id="app" class="app">
+      <video id="bg-video" class="bg-video" autoplay muted loop playsinline aria-hidden="true">
+        <source src="assets/videos/space-01.mp4" type="video/mp4" />
+      </video>
+      <canvas id="bg-canvas" class="bg-canvas" aria-hidden="true"></canvas>
+      <header class="hud">
+        <div class="hud-left">
+          <div class="logo" aria-label="Space Math Adventure" title="Space Math Adventure">🚀 Space Math</div>
+          <div class="level-display">Level <span id="level-number">1</span></div>
+        </div>
+        <div class="hud-center">
+          <div class="stars" id="star-bar" aria-label="Star progress"></div>
+          <div class="progress-stats">
+            <span id="accuracy">Accuracy: 0%</span>
+            <span id="speed">Avg Time: —</span>
+          </div>
+          <section class="sw-panel" aria-label="Starfighter console">
+            <div class="sw-header">MISSION: <span id="sw-mission">Trench Run</span></div>
+            <div id="trench-meter" class="trench-meter" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" aria-label="Level progress">
+              <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+              <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+              <div class="scanner"></div>
+            </div>
+            <div class="sw-readouts">
+              <span>VECTOR <b id="sw-vector">0.73</b></span>
+              <span>SHIELDS <b id="sw-shield">84%</b></span>
+              <span>TARGETS <b id="sw-targets">0/10</b></span>
+            </div>
+          </section>
+        </div>
+        <div class="hud-right">
+          <button class="hud-button" id="btn-gfx" aria-pressed="false" aria-label="Toggle graphics quality">🖥️ Gfx: Low</button>
+          <button class="hud-button" id="btn-theme" aria-pressed="true" aria-label="Toggle theme">🎨 Theme: Retro</button>
+          <button class="hud-button" id="btn-video" aria-pressed="true" aria-label="Toggle background video">🎞️ Video: On</button>
+          <button class="hud-button" id="btn-level-map" aria-label="Open level map">🗺️ Map</button>
+          <button class="hud-button" id="btn-reset" aria-label="Reset progress">🔄 Reset</button>
+        </div>
+      </header>
+
+      <main class="game">
+
+        <img
+          id="character"
+          class="character"
+          src="assets/images/oscar-astro-1.png"
+          alt="Astronaut Oscar"
+          aria-hidden="true"
+          title="Friendly Astro Buddy"
+        />
+
+        <section class="problem">
+          <div class="prompt" id="prompt" aria-live="polite" aria-atomic="true">1 + 1 = ?</div>
+          <div class="answers" id="answers" role="group" aria-label="Answer choices">
+            <!-- Buttons injected by JS -->
+          </div>
+        </section>
+
+        <section class="level-controls">
+          <button id="btn-prev" class="nav-button" aria-label="Previous level">◀</button>
+          <button id="btn-next" class="nav-button" aria-label="Next level">▶</button>
+        </section>
+
+        <section class="level-map" id="level-map" hidden>
+          <h2>Galaxy Map</h2>
+          <div id="level-list" class="level-list"></div>
+          <button id="close-map" class="primary">Close</button>
+        </section>
+      </main>
+
+      <canvas id="fx-canvas" class="fx-canvas" aria-hidden="true"></canvas>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+  </html>
