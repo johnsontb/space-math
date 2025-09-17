@@ -90,6 +90,190 @@ body {
 .nav-button { font-size: 22px; background: #2a3a8a; color: var(--text); border: none; border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 0 #182a6e; cursor: pointer; }
 .nav-button:active { transform: translateY(2px); box-shadow: 0 4px 0 #182a6e; }
 
+.planet-track {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: clamp(20px, 5vw, 42px);
+  align-items: center;
+  padding: clamp(10px, 1.5vw, 14px) clamp(16px, 4vw, 36px);
+  border-radius: 14px;
+  border: 1px solid rgba(115,255,210,.18);
+  background: linear-gradient(185deg, rgba(8,16,32,.9), rgba(4,8,20,.7));
+  box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.05);
+  z-index: 3;
+}
+
+.planet-track::before {
+  content: "";
+  position: absolute;
+  left: clamp(12px, 4vw, 40px);
+  right: clamp(12px, 4vw, 40px);
+  top: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(115,255,210,0), rgba(115,255,210,.45), rgba(115,255,210,0));
+  opacity: .5;
+  pointer-events: none;
+}
+
+.planet-track::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(115,255,210,.16);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.planet-node {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  cursor: pointer;
+  --node-accent: var(--accent);
+  transition: transform .25s ease, opacity .2s ease;
+}
+
+.planet-node:focus-visible {
+  outline: 2px solid var(--node-accent);
+  outline-offset: 4px;
+}
+
+.planet-node.locked {
+  opacity: .25;
+  cursor: default;
+}
+
+.planet-node__screen {
+  position: relative;
+  width: clamp(74px, 11vw, 96px);
+  height: clamp(52px, 8vw, 70px);
+  border: 1px solid rgba(115,255,210,.35);
+  border-top-color: rgba(115,255,210,.65);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(115,255,210,.28), rgba(115,255,210,.05) 60%, rgba(0,0,0,.7) 100%),
+    linear-gradient(130deg, rgba(10,16,32,.9), rgba(3,6,16,.9));
+  box-shadow: inset 0 0 18px rgba(115,255,210,.16), 0 10px 28px rgba(0,0,0,.55);
+  overflow: hidden;
+}
+
+.planet-node__screen::before,
+.planet-node__screen::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(115,255,210,.2);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.planet-node__screen::after {
+  inset: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(115,255,210,.18);
+}
+
+.planet-node__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(115,255,210,.12), rgba(115,255,210,.12) 1px, transparent 1px, transparent 12px),
+    repeating-linear-gradient(90deg, rgba(115,255,210,.12), rgba(115,255,210,.12) 1px, transparent 1px, transparent 12px);
+  opacity: .4;
+  mix-blend-mode: screen;
+}
+
+.planet-node__vector {
+  position: absolute;
+  inset: 12px 4px;
+  border: 1px solid transparent;
+  border-left-color: var(--node-accent);
+  border-radius: 50% 65% 50% 65% / 60% 50% 60% 50%;
+  transform: rotate(18deg);
+  opacity: .55;
+  filter: drop-shadow(0 0 6px rgba(115,255,210,.25));
+}
+
+.planet-node__vector::after {
+  content: "";
+  position: absolute;
+  inset: 12px 20px;
+  border: 1px solid transparent;
+  border-top-color: rgba(115,255,210,.6);
+  border-radius: 50%;
+  transform: rotate(-32deg);
+  opacity: .65;
+}
+
+.planet-node__icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(20px, 3.4vw, 26px);
+  text-shadow: 0 0 12px rgba(115,255,210,.35);
+  opacity: .85;
+  transform: translateY(-2px);
+}
+
+.planet-node__pulse {
+  position: absolute;
+  inset: -18%;
+  border: 1px solid var(--node-accent);
+  border-radius: 12px;
+  opacity: 0;
+}
+
+.planet-node__label {
+  font-size: clamp(11px, 1.8vw, 13px);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: rgba(200, 255, 240, .85);
+  text-shadow: 0 2px 10px rgba(0,0,0,.6);
+}
+
+.planet-node.current {
+  transform: translateY(-4px) scale(1.02);
+}
+
+.planet-node.current .planet-node__screen {
+  border-color: rgba(115,255,210,.7);
+  box-shadow: inset 0 0 24px rgba(115,255,210,.32), 0 0 24px rgba(115,255,210,.35);
+}
+
+.planet-node.current .planet-node__pulse {
+  animation: nodePulse 2.8s ease-out infinite;
+}
+
+.planet-node.completed:not(.current) .planet-node__screen::after {
+  border-color: rgba(115,255,210,.35);
+  box-shadow: 0 0 12px rgba(115,255,210,.28);
+}
+
+.planet-node:not(.locked):hover .planet-node__screen {
+  border-color: rgba(115,255,210,.65);
+  box-shadow: inset 0 0 24px rgba(115,255,210,.28), 0 12px 26px rgba(0,0,0,.45);
+}
+
+.planet-node:not(.locked):hover .planet-node__label {
+  color: rgba(230, 255, 245, .95);
+}
+
+@keyframes nodePulse {
+  0% { opacity: .75; transform: scale(0.9); }
+  60% { opacity: 0; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
 .level-map { position: absolute; inset: 10% 10% auto 10%; z-index: 5; background: #0f1738ee; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .level-map h2 { margin: 0 0 12px; }
 .level-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
@@ -113,6 +297,8 @@ body {
   .hud-left { justify-content: center; }
   .character { left: calc(6% + var(--char-offset-x, 0px)); width: clamp(90px, 22vw, 160px); }
   .answers { grid-template-columns: 1fr; }
+  .planet-track { bottom: 96px; gap: 16px; padding: 10px 18px; }
+  .planet-node__screen { width: 62px; height: 48px; }
 }
 
 /* === Retro-Tech (Star Wars console) Theme === */

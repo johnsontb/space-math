@@ -433,30 +433,296 @@
   const MAX_STARS = 3;
 
   const Levels = [
-    { id: 1, name: 'Level 1', emoji: '🪐', desc: 'Mostly make 10 (with a twist)', gen: genMake10() },
-    { id: 2, name: 'Level 2', emoji: '🌙', desc: 'Add/Sub within 20', gen: genWithin(20) },
-    { id: 3, name: 'Level 3', emoji: '🌟', desc: 'Double-digit, no carry/borrow', gen: genNoCarry() },
-    { id: 4, name: 'Level 4', emoji: '☄️', desc: 'Introduce carry/borrow', gen: genWithCarry(0.4) },
-    { id: 5, name: 'Level 5', emoji: '🌌', desc: 'More carry/borrow', gen: genWithCarry(0.7) },
-    { id: 6, name: 'Level 6', emoji: '🛰️', desc: 'Mixed practice', gen: genWithCarry(1.0) },
+    { id: 1, name: 'Level 1', emoji: '🪐', desc: 'Make 10 and tiny sums', gen: genMake10(), orbColor: '#6ec8ff' },
+    { id: 2, name: 'Level 2', emoji: '🌙', desc: 'Add/Sub within 20', gen: genWithin(20), orbColor: '#f9b65b' },
+    { id: 3, name: 'Level 3', emoji: '🌟', desc: 'Under 30, no carry/borrow', gen: genNoCarryUnder(30), orbColor: '#ffd56b' },
+    { id: 4, name: 'Level 4', emoji: '☄️', desc: 'Under 30 with regrouping', gen: genWithCarryUnder(30), orbColor: '#9ef1a6' },
+    { id: 5, name: 'Level 5', emoji: '🌌', desc: 'Bigger numbers & regrouping', gen: genWithCarry(0.5), orbColor: '#c89bff' },
+    { id: 6, name: 'Level 6', emoji: '🛰️', desc: 'Mixed practice challenge', gen: genWithCarry(1.0), orbColor: '#ff8fba' },
   ];
 
   function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
   function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
 
+  const KID_NAMES = ['Mia', 'Max', 'Leo', 'Ava', 'Nia', 'Noah', 'Zoe', 'Oli'];
+  const WORD_ITEMS = [
+    { singular: 'star', plural: 'stars' },
+    { singular: 'rocket', plural: 'rockets' },
+    { singular: 'coin', plural: 'coins' },
+    { singular: 'book', plural: 'books' },
+    { singular: 'shell', plural: 'shells' },
+  ];
+
+  function pluralize(count, item) {
+    return count === 1 ? item.singular : item.plural;
+  }
+
+  function buildWordProblem(max = 10) {
+    const limit = Math.max(3, Math.min(10, max));
+    const item = pick(WORD_ITEMS);
+    const name = pick(KID_NAMES);
+    let friend = pick(KID_NAMES);
+    while (friend === name) friend = pick(KID_NAMES);
+    const useAddition = Math.random() < 0.55;
+
+    if (useAddition) {
+      const a = randomInt(1, Math.max(2, Math.min(limit - 1, 6)));
+      const b = randomInt(1, Math.max(1, Math.min(limit - a, 5)));
+      const total = a + b;
+      const prompt = `${name} has ${a} ${pluralize(a, item)}. ${name} gets ${b} more ${pluralize(b, item)}. How many ${pluralize(total, item)} does ${name} have now?`;
+      return {
+        a, b,
+        op: '+',
+        ans: total,
+        type: 'mc',
+        prompt,
+        choices: [total, Math.max(0, total - 1), total + 1, Math.max(0, total - 2)].slice(0, 4),
+      };
+    }
+
+    const start = randomInt(4, Math.max(5, limit));
+    const give = randomInt(1, Math.min(4, start - 1));
+    const left = start - give;
+    const prompt = `${name} has ${start} ${pluralize(start, item)}. ${name} gives ${give} ${pluralize(give, item)} to ${friend}. How many ${pluralize(left, item)} does ${name} have left?`;
+    return {
+      a: start,
+      b: give,
+      op: '−',
+      ans: left,
+      type: 'mc',
+      prompt,
+      choices: [left, Math.max(0, left + 1), Math.max(0, left - 1), Math.max(0, left + 2)].slice(0, 4),
+    };
+  }
+
   // Generators
   function genWithin(max) {
     return () => {
+      if (Math.random() < 0.25) {
+        return buildWordProblem(max);
+      }
       const add = Math.random() < 0.5;
       if (add) {
-        const a = randomInt(0, Math.min(max, 10));
-        const b = randomInt(0, Math.min(max - a, 10));
-        return { a, b, op: '+', ans: a + b };
+        let a = 0;
+        let b = 0;
+        for (let i = 0; i < 12; i++) {
+          a = randomInt(0, max);
+          b = randomInt(0, max);
+          if (a + b <= max && (a !== 0 || b !== 0)) break;
+        }
+        if (a + b > max) b = Math.max(0, max - a);
+        const ans = a + b;
+        if (Math.random() < 0.3) {
+          return {
+            a,
+            b,
+            op: '+',
+            ans,
+            type: 'input',
+            prompt: `${a} + ${b} = ___`,
+            inputPlaceholder: 'Type the answer',
+          };
+        }
+        return { a, b, op: '+', ans, type: 'mc', prompt: `What is ${a} + ${b}?` };
       } else {
-        const a = randomInt(0, Math.min(max, 10));
-        const b = randomInt(0, Math.min(a, 10));
-        return { a, b, op: '−', ans: a - b };
+        const a = randomInt(0, max);
+        const b = randomInt(0, a);
+        const ans = a - b;
+        const askMissing = a > b && Math.random() < 0.2;
+        if (askMissing) {
+          const prompt = `${a} - ___ = ${ans}`;
+          return {
+            a,
+            b,
+            op: '−',
+            ans: b,
+            type: 'input',
+            prompt,
+            inputPlaceholder: 'Type the missing number',
+          };
+        }
+        if (Math.random() < 0.25) {
+          return {
+            a,
+            b,
+            op: '−',
+            ans,
+            type: 'input',
+            prompt: `${a} - ${b} = ___`,
+            inputPlaceholder: 'Type the answer',
+          };
+        }
+        return { a, b, op: '−', ans, type: 'mc', prompt: `What is ${a} - ${b}?` };
       }
+    };
+  }
+
+  function genNoCarryUnder(max = 30) {
+    const additionPool = [];
+    const subtractionPool = [];
+    for (let a = 10; a <= max; a++) {
+      for (let b = 1; b <= max; b++) {
+        const sum = a + b;
+        if (sum <= max && (a % 10) + (b % 10) < 10) {
+          additionPool.push({ a, b, sum });
+        }
+      }
+      for (let b = 1; b <= a; b++) {
+        if ((a % 10) >= (b % 10)) {
+          subtractionPool.push({ a, b, diff: a - b });
+        }
+      }
+    }
+
+    return () => {
+      if (Math.random() < 0.2) {
+        return buildWordProblem(Math.min(max, 12));
+      }
+      const useAdd = additionPool.length && (subtractionPool.length === 0 || Math.random() < 0.55);
+      if (useAdd) {
+        const pickAdd = additionPool[(Math.random() * additionPool.length) | 0];
+        if (Math.random() < 0.35) {
+          return {
+            a: pickAdd.a,
+            b: pickAdd.b,
+            op: '+',
+            ans: pickAdd.sum,
+            type: 'input',
+            prompt: `${pickAdd.a} + ${pickAdd.b} = ___`,
+            inputPlaceholder: 'Type the answer',
+          };
+        }
+        return {
+          a: pickAdd.a,
+          b: pickAdd.b,
+          op: '+',
+          ans: pickAdd.sum,
+          type: 'mc',
+          prompt: `What is ${pickAdd.a} + ${pickAdd.b}?`,
+        };
+      }
+      const pickSub = subtractionPool[(Math.random() * subtractionPool.length) | 0];
+      const askMissing = Math.random() < 0.3;
+      if (askMissing) {
+        return {
+          a: pickSub.a,
+          b: pickSub.b,
+          op: '−',
+          ans: pickSub.b,
+          type: 'input',
+          prompt: `${pickSub.a} - ___ = ${pickSub.diff}`,
+          inputPlaceholder: 'Type the missing number',
+          inputAriaLabel: 'Fill in the missing number',
+        };
+      }
+      if (Math.random() < 0.35) {
+        return {
+          a: pickSub.a,
+          b: pickSub.b,
+          op: '−',
+          ans: pickSub.diff,
+          type: 'input',
+          prompt: `${pickSub.a} - ${pickSub.b} = ___`,
+          inputPlaceholder: 'Type the answer',
+        };
+      }
+      return {
+        a: pickSub.a,
+        b: pickSub.b,
+        op: '−',
+        ans: pickSub.diff,
+        type: 'mc',
+        prompt: `What is ${pickSub.a} - ${pickSub.b}?`,
+      };
+    };
+  }
+
+  function genWithCarryUnder(max = 30) {
+    const additionPool = [];
+    const subtractionPool = [];
+    for (let a = 10; a <= max; a++) {
+      for (let b = 1; b <= max; b++) {
+        const sum = a + b;
+        if (sum <= max && (a % 10) + (b % 10) >= 10) {
+          additionPool.push({ a, b, sum });
+        }
+      }
+      for (let b = 1; b <= a; b++) {
+        if ((a % 10) < (b % 10)) {
+          subtractionPool.push({ a, b, diff: a - b });
+        }
+      }
+    }
+
+    return () => {
+      if (Math.random() < 0.15) {
+        return buildWordProblem(Math.min(max, 15));
+      }
+      const useAdd = additionPool.length && (subtractionPool.length === 0 || Math.random() < 0.6);
+      if (useAdd && additionPool.length) {
+        const pickAdd = additionPool[(Math.random() * additionPool.length) | 0];
+        const prompt = `${pickAdd.a} + ${pickAdd.b} = ___`;
+        if (Math.random() < 0.45) {
+          return {
+            a: pickAdd.a,
+            b: pickAdd.b,
+            op: '+',
+            ans: pickAdd.sum,
+            type: 'input',
+            prompt,
+            inputPlaceholder: 'Type the answer',
+          };
+        }
+        if (Math.random() < 0.4) {
+          const blankFirst = Math.random() < 0.5;
+          const missing = blankFirst ? pickAdd.a : pickAdd.b;
+          const shown = blankFirst ? pickAdd.b : pickAdd.a;
+          return {
+            a: pickAdd.a,
+            b: pickAdd.b,
+            op: '+',
+            ans: missing,
+            type: 'input',
+            prompt: blankFirst ? `___ + ${shown} = ${pickAdd.sum}` : `${shown} + ___ = ${pickAdd.sum}`,
+            inputPlaceholder: 'Type the missing number',
+            inputAriaLabel: 'Fill in the missing number',
+          };
+        }
+        return {
+          a: pickAdd.a,
+          b: pickAdd.b,
+          op: '+',
+          ans: pickAdd.sum,
+          type: 'mc',
+          prompt: `What is ${pickAdd.a} + ${pickAdd.b}?`,
+        };
+      }
+
+      if (subtractionPool.length) {
+        const pickSub = subtractionPool[(Math.random() * subtractionPool.length) | 0];
+        if (Math.random() < 0.4) {
+          return {
+            a: pickSub.a,
+            b: pickSub.b,
+            op: '−',
+            ans: pickSub.diff,
+            type: 'input',
+            prompt: `${pickSub.a} - ${pickSub.b} = ___`,
+            inputPlaceholder: 'Type the answer',
+          };
+        }
+        return {
+          a: pickSub.a,
+          b: pickSub.b,
+          op: '−',
+          ans: pickSub.diff,
+          type: 'mc',
+          prompt: `What is ${pickSub.a} - ${pickSub.b}?`,
+        };
+      }
+
+      // Fallback to simple within-max addition if pools empty
+      return genWithin(max)();
     };
   }
 
@@ -509,8 +775,49 @@
     return () => {
       const useMake10 = Math.random() < 0.8; // majority are 10
       const pair = useMake10 ? nextMake10() : nextNot10();
-      const useInput = Math.random() < 0.5; // mix multiple-choice and input
-      return { a: pair.a, b: pair.b, op: '+', ans: pair.a + pair.b, type: useInput ? 'input' : 'mc' };
+      const sum = pair.a + pair.b;
+      const askMissingPiece = useMake10 && Math.random() < 0.6;
+
+      if (askMissingPiece) {
+        const blankFirst = Math.random() < 0.5;
+        const missing = blankFirst ? pair.a : pair.b;
+        const shown = blankFirst ? pair.b : pair.a;
+        const prompt = blankFirst
+          ? `___ + ${shown} = ${sum}`
+          : `${shown} + ___ = ${sum}`;
+        return {
+          a: pair.a,
+          b: pair.b,
+          op: '+',
+          ans: missing,
+          type: 'input',
+          prompt,
+          inputPlaceholder: 'Type the missing number',
+          inputAriaLabel: 'Fill in the missing number',
+        };
+      }
+
+      const useInput = Math.random() < 0.4;
+      if (useInput) {
+        return {
+          a: pair.a,
+          b: pair.b,
+          op: '+',
+          ans: sum,
+          type: 'input',
+          prompt: `${pair.a} + ${pair.b} = ___`,
+          inputPlaceholder: 'Type the answer',
+        };
+      }
+
+      return {
+        a: pair.a,
+        b: pair.b,
+        op: '+',
+        ans: sum,
+        type: 'mc',
+        prompt: `What is ${pair.a} + ${pair.b}?`,
+      };
     };
   }
 
@@ -593,6 +900,7 @@
   const speedEl = document.getElementById('speed');
   const starBarEl = document.getElementById('star-bar');
   const charEl = document.getElementById('character');
+  const planetTrackEl = document.getElementById('planet-track');
 
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
@@ -661,6 +969,45 @@
     }
   }
 
+  function renderPlanetTrack() {
+    if (!planetTrackEl) return;
+    planetTrackEl.innerHTML = '';
+    Levels.forEach((lvl, idx) => {
+      const unlocked = state.progress.highestLevelUnlocked >= lvl.id;
+      const completed = state.progress.highestLevelUnlocked > lvl.id;
+      const node = document.createElement('button');
+      node.className = 'planet-node';
+      node.type = 'button';
+      node.style.setProperty('--node-accent', lvl.orbColor || '#6ec8ff');
+      node.style.setProperty('--node-index', String(idx));
+      if (!unlocked) {
+        node.classList.add('locked');
+        node.disabled = true;
+        node.setAttribute('aria-label', `${lvl.name} (locked)`);
+      } else {
+        node.setAttribute('aria-label', `${lvl.name}: ${lvl.desc}`);
+      }
+      if (completed) node.classList.add('completed');
+      if (idx === state.levelIndex) {
+        node.classList.add('current');
+        node.setAttribute('aria-current', 'true');
+      }
+      node.innerHTML = `
+        <span class="planet-node__screen">
+          <span class="planet-node__grid" aria-hidden="true"></span>
+          <span class="planet-node__vector" aria-hidden="true"></span>
+          <span class="planet-node__icon" aria-hidden="true">${lvl.emoji}</span>
+          <span class="planet-node__pulse" aria-hidden="true"></span>
+        </span>
+        <span class="planet-node__label">${lvl.name}</span>
+      `;
+      if (unlocked && idx !== state.levelIndex) {
+        node.addEventListener('click', () => switchLevel(idx));
+      }
+      planetTrackEl.appendChild(node);
+    });
+  }
+
   function getLevelStats(idx) {
     const id = Levels[idx].id;
     const rec = state.progress.levels[id] || { attempts: 0, correct: 0, totalTimeMs: 0, bestStars: 0 };
@@ -697,6 +1044,34 @@
     renderStarsBar(stats.bestStars || 0);
     levelNumEl.textContent = (state.levelIndex + 1).toString();
     renderProgress();
+    renderPlanetTrack();
+  }
+
+  function switchLevel(newIndex, opts = {}) {
+    if (newIndex < 0 || newIndex >= Levels.length) return;
+    const unlocked = state.progress.highestLevelUnlocked >= Levels[newIndex].id;
+    if (!unlocked && !opts.force) return;
+    const changed = newIndex !== state.levelIndex;
+    state.levelIndex = newIndex;
+    if (opts.closeMap && mapEl) mapEl.hidden = true;
+    if (changed) {
+      if (!opts.silent) Bleep.click();
+      startRound();
+    } else if (opts.refresh) {
+      startRound();
+    }
+  }
+
+  function advanceToNextLevel(auto = false) {
+    const next = Math.min(Levels.length - 1, state.levelIndex + 1);
+    const unlocked = state.progress.highestLevelUnlocked >= Levels[next].id;
+    if (next !== state.levelIndex && unlocked) {
+      switchLevel(next, { silent: auto });
+    } else {
+      state.levelProgress = 0;
+      renderProgress();
+      setTimeout(startRound, 250);
+    }
   }
 
   function unlockNextIfEligible() {
@@ -735,7 +1110,9 @@
           ${Array.from({length: MAX_STARS}).map((_,j)=>`<div class="star${(getLevelStats(i).bestStars||0)>j?' on':''}"></div>`).join('')}
         </div>
       `;
-      card.addEventListener('click', () => { state.levelIndex = i; mapEl.hidden = true; Bleep.click(); startRound(); });
+      card.addEventListener('click', () => {
+        switchLevel(i, { closeMap: true });
+      });
       levelListEl.appendChild(card);
     });
   }
@@ -752,8 +1129,18 @@
     const gen = Levels[state.levelIndex].gen;
     const q = gen();
     state.currentQuestion = q;
-    promptEl.textContent = `${q.a} ${q.op} ${q.b} = ?`;
-    if (q.type === 'input') {
+    const defaultPrompt = typeof q.a === 'number' && typeof q.b === 'number' && q.op
+      ? `${q.a} ${q.op} ${q.b} = ?`
+      : 'Solve the puzzle';
+    if (q.promptHtml) {
+      promptEl.innerHTML = q.promptHtml;
+    } else if (q.prompt) {
+      promptEl.textContent = q.prompt;
+    } else {
+      promptEl.textContent = defaultPrompt;
+    }
+    const questionType = q.type === 'input' ? 'input' : 'mc';
+    if (questionType === 'input') {
       state.buttons = createInputAnswer(q.ans, q);
     } else {
       state.buttons = createChoices(q.ans, q);
@@ -763,17 +1150,39 @@
 
   function createChoices(correct, q) {
     // 3–4 options; ensure unique and plausible distractors
-    const count = Math.random() < 0.2 ? 3 : 4;
-    const opts = new Set([correct]);
-    const span = Math.max(2, Math.ceil(Math.abs(q.a) + Math.abs(q.b)));
-    while (opts.size < count) {
+    const desiredCount = Math.random() < 0.2 ? 3 : 4;
+    const baseSpan = Math.abs(q && typeof q.a === 'number' ? q.a : correct) + Math.abs(q && typeof q.b === 'number' ? q.b : 0);
+    const span = Math.max(2, Math.ceil(baseSpan || correct || 2));
+
+    let arr;
+    if (Array.isArray(q.choices) && q.choices.length) {
+      const set = new Set();
+      q.choices.forEach((val) => {
+        const num = Number(val);
+        if (!Number.isNaN(num)) set.add(num);
+      });
+      set.add(correct);
+      arr = Array.from(set);
+    } else {
+      const opts = new Set([correct]);
+      while (opts.size < desiredCount) {
+        let delta = randomInt(-Math.max(1, Math.floor(span / 3)), Math.max(2, Math.floor(span / 2)));
+        if (delta === 0) delta = 1;
+        let cand = correct + delta;
+        if (cand < 0) cand = Math.abs(cand); // keep non-negative for kid-friendliness
+        opts.add(cand);
+      }
+      arr = Array.from(opts);
+    }
+
+    while (arr.length < desiredCount) {
       let delta = randomInt(-Math.max(1, Math.floor(span / 3)), Math.max(2, Math.floor(span / 2)));
       if (delta === 0) delta = 1;
       let cand = correct + delta;
-      if (cand < 0) cand = Math.abs(cand); // keep non-negative for kid-friendliness
-      opts.add(cand);
+      if (cand < 0) cand = Math.abs(cand);
+      if (!arr.includes(cand)) arr.push(cand);
     }
-    const arr = Array.from(opts);
+
     for (let i = arr.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [arr[i], arr[j]] = [arr[j], arr[i]]; }
     const buttons = arr.map((val) => {
       const btn = document.createElement('button');
@@ -816,7 +1225,11 @@
       }
       unlockNextIfEligible();
       saveProgress(state.progress);
-      setTimeout(startRound, 550);
+      if (state.levelProgress >= LEVEL_GOAL) {
+        setTimeout(() => advanceToNextLevel(true), 700);
+      } else {
+        setTimeout(startRound, 550);
+      }
     } else {
       if (anchorEl) anchorEl.classList.add('wrong');
       Bleep.wrong();
@@ -836,14 +1249,16 @@
     input.type = 'number';
     input.inputMode = 'numeric';
     input.className = 'answer-input';
-    input.setAttribute('aria-label', 'Type your answer');
-    input.placeholder = 'Type answer';
+    const inputLabel = q && q.inputAriaLabel ? q.inputAriaLabel : 'Type your answer';
+    const placeholder = q && q.inputPlaceholder ? q.inputPlaceholder : 'Type answer';
+    input.setAttribute('aria-label', inputLabel);
+    input.placeholder = placeholder;
     input.min = '0';
 
     const btn = document.createElement('button');
     btn.className = 'answer-btn';
-    btn.textContent = 'Submit';
-    btn.setAttribute('aria-label', 'Submit answer');
+    btn.textContent = q && q.submitLabel ? q.submitLabel : 'Submit';
+    btn.setAttribute('aria-label', q && q.submitAriaLabel ? q.submitAriaLabel : 'Submit answer');
 
     const submit = (ev) => {
       const val = Number(input.value);
@@ -872,12 +1287,11 @@
   // Navigation
   btnPrev.addEventListener('click', () => {
     const prev = Math.max(0, state.levelIndex - 1);
-    if (prev !== state.levelIndex) { state.levelIndex = prev; Bleep.click(); startRound(); }
+    if (prev !== state.levelIndex) switchLevel(prev);
   });
   btnNext.addEventListener('click', () => {
     const next = Math.min(Levels.length - 1, state.levelIndex + 1);
-    const allowed = state.progress.highestLevelUnlocked >= Levels[next].id;
-    if (next !== state.levelIndex && allowed) { state.levelIndex = next; Bleep.click(); startRound(); }
+    if (next !== state.levelIndex) switchLevel(next);
   });
   if (btnGfx) {
     btnGfx.addEventListener('click', () => {
